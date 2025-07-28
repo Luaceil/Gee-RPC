@@ -9,7 +9,7 @@ type Header struct {
 }
 
 type Codec interface {
-	io.Closer
+	io.Closer // I/O 资源（如文件、网络连接）
 	ReadHeader(*Header) error
 	ReadBody(interface{}) error
 	Write(*Header, interface{}) error

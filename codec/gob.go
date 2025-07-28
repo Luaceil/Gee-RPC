@@ -7,13 +7,6 @@ import (
 	"log"
 )
 
-import (
-	"bufio"
-	"encoding/gob"
-	"io"
-	"log"
-)
-
 type GobCodec struct {
 	conn io.ReadWriteCloser
 	buf  *bufio.Writer
@@ -31,4 +24,34 @@ func NewGobCodec(conn io.ReadWriteCloser) Codec {
 		dec:  gob.NewDecoder(conn),
 		enc:  gob.NewEncoder(buf),
 	}
+}
+func (g *GobCodec) ReadHeader(h *Header) error {
+	return g.dec.Decode(h)
+}
+
+func (g *GobCodec) ReadBody(body interface{}) error {
+	return g.dec.Decode(body)
+}
+
+func (g *GobCodec) Write(h *Header, body interface{}) (err error) {
+	defer func() {
+		_ = g.buf.Flush()
+		if err != nil && g.conn != nil {
+			_ = g.conn.Close()
+		}
+	}()
+
+	if err := g.enc.Encode(h); err != nil {
+		log.Println("rpc: gob error encoding header:", err)
+		return err
+	}
+	if err := g.enc.Encode(body); err != nil {
+		log.Println("rpc: gob error encoding body:", err)
+		return err
+	}
+	return err
+}
+
+func (g *GobCodec) Close() error {
+	return g.conn.Close()
 }
